@@ -1,0 +1,58 @@
+This is your Ultimate Project Master Summary. Use this to explain your vision to any AI (like Cursor, AI Studio, or ChatGPT) so it builds the "ZanX Universal API" perfectly on the first try.
+
+Project Name: ZanX Universal Image API
+Purpose: A public, high-speed image conversion API where anyone can transform a PNG into a JPG via a direct link.
+Constraint: It must bypass Vercel's 4.5MB payload limit to handle high-resolution images.
+
+1. The Tech Stack
+Framework: Next.js (App Router).
+
+Language: TypeScript.
+
+Engine: sharp (Node.js High-Performance Image Library).
+
+Hosting: Vercel (Hobby Tier).
+
+2. Core Strategy: The "Streaming Pipe"
+To bypass the 4.5MB limit, we will not store the file in memory. Instead, we "pipe" it.
+
+Fetch: Start a stream from the user's source URL.
+
+Transform: Pass that stream through sharp.
+
+Respond: Send the output stream to the browser immediately.
+
+3. Implementation Details (To give the AI)
+API Endpoint Structure:
+https://your-app.vercel.app/api/convert?url={IMAGE_URL}
+
+Step-by-Step Task for AI:
+Dependency: Install sharp via npm install sharp.
+
+Route Handler: Create app/api/convert/route.ts.
+
+Code Logic:
+
+Extract the url from the query parameters.
+
+Use fetch(url) and access the response.body (the ReadableStream).
+
+Initialize a sharp instance: const transformer = sharp().jpeg({ quality: 90 }).
+
+Use a TransformStream to link the incoming data to sharp and finally to the user's browser.
+
+Headers: Set Content-Type: image/jpeg and Cache-Control: public, s-maxage=31536000, stale-while-revalidate.
+
+4. Why this is "Super High Quality" (ZanX Standard)
+Zero-Visit Access: Users don't need to visit a landing page. It's a "headless" API.
+
+Infinite Capacity: It can handle 20MB+ files on a free Vercel account because the server only processes one "chunk" (a few KBs) at a time.
+
+Pro-Level Metadata: It returns professional headers that tell browsers to cache the image, making repeat loads instant.
+
+How to start the conversation with your AI IDE:
+"I am building the ZanX Universal Image API in Next.js. I need you to create a Route Handler in app/api/convert/route.ts.
+
+The goal is to take a PNG URL from the query string and return a JPG. To bypass Vercel's 4.5MB limit, you must use streaming. Use fetch to get the source stream, pipe it through sharp, and return it as a ReadableStream in the NextResponse.
+
+Make it robust, handle errors if the URL is invalid, and set proper image headers."

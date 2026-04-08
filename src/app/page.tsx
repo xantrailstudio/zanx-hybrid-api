@@ -107,7 +107,7 @@ export default function Home() {
       {/* Footer */}
       <footer>
         <span>© 2026 ZanX Hybrid Engine</span>
-        <span>Licensed under MIT</span>
+        <span>Built by AbdulAziz Memon • MIT</span>
       </footer>
     </div>
   );

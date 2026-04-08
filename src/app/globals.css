@@ -105,8 +105,15 @@ p {
   color: #ccc;
   position: relative;
   overflow-x: auto;
-  white-space: pre;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  scrollbar-width: none; /* Hide scrollbar for Chrome/Safari/Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
   margin-bottom: 2rem;
+}
+
+.code-block::-webkit-scrollbar {
+  display: none; /* Hide scrollbar for Chrome/Safari */
 }
 
 .code-block::before {
