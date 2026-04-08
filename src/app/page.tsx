@@ -6,14 +6,14 @@ export default function Home() {
 
       {/* Hero Section */}
       <section className="hero">
-        <div className="badge">ZanX Universal API v1.0</div>
+        <div className="badge">ZanX Universal API v2.0</div>
         <h1>ZanX Invisible API</h1>
         <p>
-          A high-speed, headless image conversion engine built for the next generation of web apps. 
-          Bypass serverless payload limits and transform high-resolution images via streaming.
+          A high-speed, high-performance image conversion engine. 
+          Bypass serverless payload limits and transform between all major web formats via streaming.
         </p>
         <div className="code-block" style={{ textAlign: 'center' }}>
-          GET /api/convert?url=&#123;IMAGE_URL&#125;
+          GET /api/convert?url=&#123;IMAGE_URL&#125;&to=&#123;format&#125;
         </div>
       </section>
 
@@ -26,12 +26,12 @@ export default function Home() {
             <p>Processes 20MB+ files on standard serverless accounts by using chunk-based streaming instead of memory buffering.</p>
           </div>
           <div className="feature-card">
-            <h3>Headless first</h3>
-            <p>Designed for direct integration. No frontend needed. Return processed images directly to `&lt;img&gt;` tags or background fetches.</p>
+            <h3>Multi-Format v2.0</h3>
+            <p>Support for WebP, AVIF, PNG, and JPEG. Transform any public URL instantly with optimized compression.</p>
           </div>
           <div className="feature-card">
             <h3>Auto-Optimizer</h3>
-            <p>Built-in Sharp integration for industry-leading JPEG compression, progressive loading, and metadata stripping.</p>
+            <p>Built-in metadata stripping and progressive loading to ensure the smallest possible payload for your users.</p>
           </div>
         </div>
       </section>
@@ -48,27 +48,23 @@ export default function Home() {
         <ul className="parameter-list">
           <li className="parameter-item">
             <span className="param-name">url</span>
-            <span className="param-desc">The direct URL of the source PNG image to be converted. (Required)</span>
+            <span className="param-desc">The direct URL of the source image (PNG, JPG, WEBP, AVIF, GIF, TIFF, SVG). (Required)</span>
           </li>
           <li className="parameter-item">
-            <span className="param-name">format</span>
-            <span className="param-desc">Internal default is `jpeg`. Future support for `webp` and `avif`. (Optional)</span>
+            <span className="param-name">to</span>
+            <span className="param-desc">Target format: `jpg`, `png`, `webp`, or `avif`. Default is `jpg`. (Optional)</span>
           </li>
         </ul>
 
-        <h3>Headers</h3>
+        <h3>Security & Errors</h3>
         <ul className="parameter-list">
           <li className="parameter-item">
-            <span className="param-name">Content-Type</span>
-            <span className="param-desc">`image/jpeg`</span>
+            <span className="param-name">400</span>
+            <span className="param-desc">Returned for invalid URLs, unsupported formats, or 404 source images.</span>
           </li>
           <li className="parameter-item">
-            <span className="param-name">Cache-Control</span>
-            <span className="param-desc">`public, s-maxage=31536000` (1 Year Browser/CDN Cache)</span>
-          </li>
-          <li className="parameter-item">
-            <span className="param-name">CORS</span>
-            <span className="param-desc">`Access-Control-Allow-Origin: *` (Enabled for all domains)</span>
+            <span className="param-name">SSRF</span>
+            <span className="param-desc">Only `http` and `https` protocols are allowed for security.</span>
           </li>
         </ul>
       </section>
@@ -81,7 +77,7 @@ export default function Home() {
         <p>Use it directly as a source for your image tags. No JavaScript required.</p>
         <div className="code-block">
 {`<img 
-  src="/api/convert?url=https://example.com/source.png" 
+  src="/api/convert?url=https://example.com/source.png&to=webp" 
   alt="Converted Image" 
 />`}
         </div>
@@ -90,7 +86,7 @@ export default function Home() {
         <p>Fetch binary image data for client-side processing or dynamic downloads.</p>
         <div className="code-block">
 {`const fetchImage = async (url) => {
-  const response = await fetch(\`/api/convert?url=\${url}\`);
+  const response = await fetch(\`/api/convert?url=\${url}&to=avif\`);
   const blob = await response.blob();
   const objectURL = URL.createObjectURL(blob);
   document.querySelector('#myImg').src = objectURL;
@@ -100,7 +96,7 @@ export default function Home() {
         <h3>cURL (Terminal)</h3>
         <p>Download images directly from your command line.</p>
         <div className="code-block">
-          curl -L "/api/convert?url=SOURCE_URL" -o image.jpg
+          curl -L "/api/convert?url=SOURCE_URL&to=jpg" -o image.jpg
         </div>
       </section>
 

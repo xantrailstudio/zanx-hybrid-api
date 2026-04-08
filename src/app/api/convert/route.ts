@@ -1,3 +1,5 @@
+export const runtime = 'nodejs';
+
 import { NextRequest, NextResponse } from 'next/server';
 import sharp from 'sharp';
 import { Readable } from 'stream';
@@ -15,80 +17,113 @@ export async function OPTIONS() {
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const imageUrl = searchParams.get('url');
+  const targetFormat = (searchParams.get('to') || 'jpeg').toLowerCase();
 
-  if (!imageUrl) {
+  // 1. Invalid URL Check
+  if (!imageUrl || !imageUrl.startsWith('http')) {
     return NextResponse.json(
-      { error: 'Missing image URL' },
+      { error: "Invalid or missing image URL" },
+      { status: 400, headers: corsHeaders }
+    );
+  }
+
+  // 2. Format Support Check
+  const supportedFormats = ['jpg', 'jpeg', 'webp', 'avif', 'png'];
+  if (!supportedFormats.includes(targetFormat)) {
+    return NextResponse.json(
+      { error: "Output format not supported." },
       { status: 400, headers: corsHeaders }
     );
   }
 
   try {
-    // Validate URL format
-    new URL(imageUrl);
-  } catch (e) {
-    return NextResponse.json(
-      { error: 'Invalid image URL format' },
-      { status: 400, headers: corsHeaders }
-    );
-  }
+    // 3. Robust Fetch with Timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s
 
-  try {
-    // 1. Fetch the source image
-    const response = await fetch(imageUrl);
+    const response = await fetch(imageUrl, { signal: controller.signal }).finally(() => {
+      clearTimeout(timeoutId);
+    });
 
-    if (!response.ok) {
+    if (response.status === 404) {
       return NextResponse.json(
-        { error: `Failed to fetch image: ${response.statusText}` },
-        { status: response.status, headers: corsHeaders }
-      );
-    }
-
-    const contentType = response.headers.get('content-type');
-    if (!contentType || !contentType.startsWith('image/')) {
-      return NextResponse.json(
-        { error: 'URL did not point to a valid image' },
+        { error: "Source image not found" },
         { status: 400, headers: corsHeaders }
       );
     }
 
-    if (!response.body) {
+    if (!response.ok) {
       return NextResponse.json(
-        { error: 'Source image has no body' },
-        { status: 500, headers: corsHeaders }
+        { error: "Unable to fetch source image. Ensure the URL is public and CORS-friendly." },
+        { status: 400, headers: corsHeaders }
       );
     }
 
-    // 2. Convert Web ReadableStream to Node.js Readable stream
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.startsWith('image/') && !contentType.includes('application/octet-stream')) {
+      // Some servers use octet-stream for images, we allow it if the user explicitly provided it
+    }
+
+    if (!response.body) {
+      return NextResponse.json(
+        { error: "Unable to fetch source image. Ensure the URL is public and CORS-friendly." },
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
+    // 4. Multi-Format Transformer Logic
+    let transformer;
+    let outputMimeType;
+    let extension;
+
+    switch (targetFormat) {
+      case 'webp':
+        transformer = (sharp().webp({ quality: 80 }) as any).withMetadata(false);
+        outputMimeType = 'image/webp';
+        extension = 'webp';
+        break;
+      case 'avif':
+        transformer = (sharp().avif({ quality: 50 }) as any).withMetadata(false);
+        outputMimeType = 'image/avif';
+        extension = 'avif';
+        break;
+      case 'png':
+        transformer = (sharp().png({ compressionLevel: 9 }) as any).withMetadata(false);
+        outputMimeType = 'image/png';
+        extension = 'png';
+        break;
+      default: // jpg/jpeg
+        transformer = (sharp().jpeg({ quality: 90, progressive: true }) as any).withMetadata(false);
+        outputMimeType = 'image/jpeg';
+        extension = 'jpg';
+        break;
+    }
+
+    // 5. Streaming Pipeline
     // @ts-ignore - response.body is a Web ReadableStream
     const nodeStream = Readable.fromWeb(response.body);
-
-    // 3. Initialize sharp transformer
-    const transformer = sharp().jpeg({
-      quality: 90,
-      progressive: true,
-    });
-
-    // 4. Pipe source stream into sharp
     const transformedStream = nodeStream.pipe(transformer);
-
-    // 5. Convert Node.js Readable back to Web ReadableStream for NextResponse
     const webStream = Readable.toWeb(transformedStream) as ReadableStream;
 
-    // 6. Return the streaming response
     return new NextResponse(webStream, {
       headers: {
         ...corsHeaders,
-        'Content-Type': 'image/jpeg',
+        'Content-Type': outputMimeType,
         'Cache-Control': 'public, s-maxage=31536000, stale-while-revalidate',
-        'Content-Disposition': 'inline; filename="converted.jpg"',
+        'Content-Disposition': `inline; filename="converted.${extension}"`,
       },
     });
+
   } catch (error: any) {
-    console.error('Conversion error:', error);
+    if (error.name === 'AbortError') {
+      return NextResponse.json(
+        { error: "Source image request timed out" },
+        { status: 504, headers: corsHeaders }
+      );
+    }
     return NextResponse.json(
-      { error: 'Internal server error during conversion', details: error.message },
-      { status: 500, headers: corsHeaders }
+      { error: "Unable to fetch source image. Ensure the URL is public and CORS-friendly." },
+      { status: 400, headers: corsHeaders }
     );
   }
 }
